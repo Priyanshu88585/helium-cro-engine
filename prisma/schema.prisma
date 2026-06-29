@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  analysisRuns  AnalysisRun[]
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@unique([identifier, token])
+}
+
+model AnalysisRun {
+  id                    String        @id @default(cuid())
+  url                   String
+  status                String        // PENDING, CRAWLING, ANALYZING, COMPLETED, FAILED
+  overallScore          Int?
+  revenueOpportunity    Float?
+  conversionImprovement Float?
+  userId                String?
+  user                  User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  opportunities         Opportunity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Opportunity {
+  id                     String  @id @default(cuid())
+  title                  String
+  category               String
+  evidence               String
+  explanation            String
+  whyItMatters           String
+  businessImpact         String
+  expectedConversionLift Float
+  confidenceScore        Float
+  implementationEffort   String
+  priorityScore          Float
+  priorityLevel          String  // CRITICAL, HIGH, MEDIUM, LOW
+  affectedPages          String  // Stored as JSON string
+  recommendedSolution    String
+  alternativeSolutions   String  // Stored as JSON string
+  screenshotUrl          String?
+  references             String? // Stored as JSON string
+
+  analysisRunId String
+  analysisRun   AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  experimentBriefs ExperimentBrief[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExperimentBrief {
+  id                    String   @id @default(cuid())
+  hypothesis            String
+  problemStatement      String
+  evidence              String
+  proposedSolution      String
+  primaryMetric         String
+  secondaryMetrics      String   // JSON string
+  successCriteria       String
+  implementationSteps   String   // JSON string
+  riskAssessment        String
+  estimatedTimeline     String
+  experimentPriority    String
+  expectedRevenueImpact Float
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
